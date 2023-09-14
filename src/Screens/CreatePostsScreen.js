@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
+import * as Location from "expo-location";
+import { Camera } from "expo-camera";
+import * as MediaLibrary from "expo-media-library";
 import {
   TextInput,
   TouchableWithoutFeedback,
@@ -11,6 +14,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { SvgCamera, SvgLocation, SvgTrash } from "../images/Svg";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -32,40 +36,87 @@ export const CreatePostsScreen = () => {
     resolver: yupResolver(schema),
   });
 
+  const [hasPermission, setHasPermission] = useState(null);
+  const [cameraRef, setCameraRef] = useState(null);
+  const [type, setType] = useState(Camera.Constants.Type.back);
+
   const [submitButtonActive, setSubmitButtonActive] = useState(false);
 
   const [isFocusedInput, setIsFocusedInput] = useState(false);
 
-  const [image, setImage] = useState("");
+  const [photo, setPhoto] = useState("");
 
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
+  const [geolocation, setGeolocation] = useState("");
 
   useEffect(() => {
-    if (isValid) {
-      // (isValid && image) (коли додам логіку завантаження фото)
+    if (isValid && photo) {
       setSubmitButtonActive(true);
     } else {
       setSubmitButtonActive(false);
     }
-  }, [isValid]);
+  }, [isValid, photo]);
 
-  const addPhoto = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    (async () => {
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      await MediaLibrary.requestPermissionsAsync();
+
+      setHasPermission(status === "granted");
+      if (hasPermission === null) {
+        return <View />;
+      }
+      if (hasPermission === false) {
+        return <Text>No access to camera</Text>;
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        console.log("Permission to access location was denied");
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      const coords = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+      setGeolocation(coords);
+    })();
+  }, []);
+
+  const addPhoto = async () => {
+    if (cameraRef) {
+      const { uri } = await cameraRef.takePictureAsync();
+      setPhoto(uri);
+    }
   };
 
   const resetForm = () => {
     setTitle("");
     setLocation("");
-    setImage("");
+    setPhoto("");
+    setGeolocation("");
     reset();
   };
 
   const onSubmit = ({ title, location }) => {
+    const post = {
+      title,
+      location,
+      photo,
+      geolocation,
+    };
     console.log({
       Title: title,
       Location: location,
-      // Image: image,
+      Photo: photo,
+      Latitude: geolocation.latitude,
+      Longitude: geolocation.longitude,
     });
 
     resetForm();
@@ -77,17 +128,40 @@ export const CreatePostsScreen = () => {
         <View style={styles.wrapper}>
           <View style={styles.contentImgBlock}>
             <View style={styles.imageWrapper}>
-              <TouchableOpacity
-                style={styles.addPhotoBtn}
-                activeOpacity={0.7}
-                onPress={addPhoto}
-              >
-                <SvgCamera width={24} height={24} />
-              </TouchableOpacity>
+              <Camera style={styles.camera} type={type} ref={setCameraRef}>
+                <TouchableOpacity
+                  style={styles.changeCameraType}
+                  onPress={() => {
+                    setType(
+                      type === Camera.Constants.Type.back
+                        ? Camera.Constants.Type.front
+                        : Camera.Constants.Type.back
+                    );
+                  }}
+                >
+                  <TouchableOpacity
+                    style={styles.addPhotoBtn}
+                    activeOpacity={0.7}
+                    onPress={addPhoto}
+                  >
+                    <SvgCamera width={24} height={24} />
+                  </TouchableOpacity>
+                  {photo && (
+                    <Image
+                      style={styles.previewPhotoContainer}
+                      source={{ uri: photo }}
+                    />
+                  )}
+                </TouchableOpacity>
+              </Camera>
             </View>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                setPhoto("");
+              }}
+            >
               <Text style={styles.text}>
-                {!image ? "Завантажте фото" : "Редагувати фото"}
+                {!photo ? "Завантажте фото" : "Редагувати фото"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -205,10 +279,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 8,
   },
+  camera: {
+    flex: 1,
+    width: "100%",
+  },
+  changeCameraType: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   addPhotoBtn: {
+    width: 60,
+    height: 60,
     padding: 18,
     backgroundColor: "#fff",
     borderRadius: 50,
+  },
+  previewPhotoContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
   },
   text: {
     fontFamily: "Roboto-Regular",
