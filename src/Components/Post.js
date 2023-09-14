@@ -16,10 +16,13 @@ export const Post = ({ image, title, comentQuantity, location }) => {
           <SvgComent style={styles.postSvg} />
           <Text style={styles.postsQuantity}>{comentQuantity}</Text>
         </TouchableOpacity>
-        <View style={styles.locationBlock}>
+        <TouchableOpacity
+          style={styles.locationBlock}
+          onPress={() => navigation.navigate("Map")}
+        >
           <SvgLocation style={styles.postSvg} />
           <Text style={styles.locationTxt}>{location}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );

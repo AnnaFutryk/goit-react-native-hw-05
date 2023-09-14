@@ -26,10 +26,13 @@ export const ProfilePost = ({
           <SvgLike style={styles.svgLike} />
           <Text style={styles.postsLikes}>{likes}</Text>
         </View>
-        <View style={styles.locationBlock}>
+        <TouchableOpacity
+          style={styles.locationBlock}
+          onPress={() => navigation.navigate("Map")}
+        >
           <SvgLocation style={styles.postSvg} />
           <Text style={styles.locationTxt}>{location}</Text>
-        </View>
+        </TouchableOpacity>
       </View>
     </View>
   );
