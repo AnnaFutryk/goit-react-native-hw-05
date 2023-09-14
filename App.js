@@ -10,6 +10,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { SvgBack } from "./src/images/Svg";
 import { Home } from "./src/Screens/Home";
 import { CommentsScreen } from "./src/Screens/CommentsScreen";
+import { MapScreen } from "./src/Screens/MapScreen";
 
 const MainStack = createStackNavigator(); // вказує на групу навігаторів
 
@@ -47,6 +48,27 @@ export default function App() {
           component={CommentsScreen}
           options={({ navigation }) => ({
             title: "Коментарі",
+            headerTitleStyle: {
+              fontSize: 17,
+              textAlign: "center",
+              fontFamily: "Roboto-Medium",
+            },
+            headerLeft: () => (
+              <TouchableOpacity
+                style={styles.backBtn}
+                // onPress={() => navigation.navigate("PostsScreen")}
+                onPress={() => navigation.goBack()}
+              >
+                <SvgBack />
+              </TouchableOpacity>
+            ),
+          })}
+        />
+        <MainStack.Screen
+          name="Map"
+          component={MapScreen}
+          options={({ navigation }) => ({
+            title: "Карта",
             headerTitleStyle: {
               fontSize: 17,
               textAlign: "center",
